@@ -420,6 +420,17 @@ class MiotService:
                 for camera_info in camera_dict.values()
             ]
 
+            # 注入虚拟屏幕摄像头（如果 screen_service 在运行）
+            camera_list.append(CameraInfo(
+                did="virtual-screen-0",
+                name="屏幕采集",
+                online=True,
+                home_id="virtual-home",
+                room_name="虚拟设备",
+                channel_count=1,
+                is_online=True,
+            ))
+
             return camera_list
         except MiotServiceException:
             raise
@@ -959,6 +970,15 @@ class MiotService:
                     "connected": did in connected,
                 }
             )
+        # 注入虚拟屏幕摄像头
+        out.append({
+            "did": "virtual-screen-0",
+            "name": "屏幕采集",
+            "room_name": "虚拟设备",
+            "is_online": True,
+            "in_use": True,
+            "connected": True,
+        })
         return out
 
     async def toggle_camera(self, items: list[dict]) -> list[dict]:

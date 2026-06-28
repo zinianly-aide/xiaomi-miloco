@@ -10,6 +10,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Query, WebSocket
 from fastapi.responses import HTMLResponse, Response
@@ -614,7 +615,7 @@ async def record_clip(
 
 
 @router.get("/watch", summary="Live camera view (browser)")
-async def watch_page():
+async def watch_page(camera_id: str = ""):
     """Serve the standalone live-view page.
 
     The page itself is unauthenticated (browsers can't set custom headers
@@ -628,11 +629,32 @@ async def watch_page():
     backend listens on 0.0.0.0 and trusts whoever holds ``server.token``.
     Don't expose this endpoint to untrusted networks.
     """
+    # 虚拟摄像头：直接嵌入屏幕采集服务
+    if camera_id == "virtual-screen-0":
+        token = get_settings().server.token or ""
+        if not token:
+            return HTMLResponse(
+                content="<h1>503: server.token 未配置,无法启动 screen watch 页</h1>",
+                status_code=503,
+            )
+        return HTMLResponse(
+            content=f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>屏幕感知</title>
+<style>
+*{{margin:0;padding:0;box-sizing:border-box}}
+body{{background:#000;display:flex;height:100vh}}
+iframe{{flex:1;border:none}}
+</style></head>
+<body><iframe src="/api/screen?token={quote(token, safe='')}"></iframe></body>
+</html>""",
+            headers={"Cache-Control": "no-store"},
+        )
+
     settings = get_settings()
     token = settings.server.token or ""
     if not token:
-        # token 真空(配置加载失败 / 运维清空)时返 503 比返一个连不上的 watch.html
-        # 友好,住户看到错误页知道"配置出问题"而不是"摄像头连不上重试无效"。
         return HTMLResponse(
             content="<h1>503: server.token 未配置,无法启动 watch 页</h1>",
             status_code=503,

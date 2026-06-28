@@ -61,6 +61,8 @@ from miloco.perception.events_router import router as events_router
 from miloco.perception.router import router as perception_router
 from miloco.person.router import router as person_router
 from miloco.rule.router import router as rule_router
+from miloco.screen_monitor import router as screen_router
+from miloco.screen_monitor import shutdown_screen_capture
 from miloco.task.router import router as task_router
 from miloco.task_record.router import router as task_record_router
 from miloco.utils.common import escape_for_js_string
@@ -435,6 +437,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         logger.error("omni_log flush on shutdown failed: %s", e)
 
     # Stop monitoring threads after engine
+    shutdown_screen_capture()
     watchdog.stop()
     resource_mon.stop()
     event_log.shutdown()
@@ -470,6 +473,7 @@ app.include_router(task_record_router, prefix="/api")
 app.include_router(perception_router, prefix="/api")
 app.include_router(events_router, prefix="/api")
 app.include_router(monitor_router, prefix="/api")
+app.include_router(screen_router, prefix="/api")
 # observability_router 整个 router 都依赖 _app.state.obs_db_path,
 # perf.enabled=false 时该 state 不绑,这里不门控会让访问端点触发
 # AttributeError → 500。跟 perception_router /metrics 端点的 perf 门控对齐。

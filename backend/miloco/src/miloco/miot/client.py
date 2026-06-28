@@ -660,11 +660,68 @@ class MiotProxy:
                     else:
                         # cam 仍在账号里,manager 保活(无论 scope 状态)。
                         logger.debug("Manager %s kept alive for watch stream", camera_did)
+                # 注入虚拟屏幕摄像头
+                self._inject_virtual_screen_camera()
                 return cameras
 
             except Exception as e:
                 logger.error("Failed to refresh cameras: %s", e)
                 return None
+
+    def _inject_virtual_screen_camera(self):
+        """注入虚拟屏幕采集摄像头，供面板展示和感知分析。"""
+        from miot.types import MIoTCameraInfo, MIoTCameraStatus, MIoTDeviceInfo
+
+        if "virtual-screen-0" in self._camera_info_dict:
+            return  # already injected
+
+        # Resolve home_id from existing cameras or use a fallback
+        home_id = "virtual-home"
+        for cam in self._camera_info_dict.values():
+            if getattr(cam, "home_id", None):
+                home_id = cam.home_id
+                break
+
+        screen_cam = MIoTCameraInfo(
+            did="virtual-screen-0",
+            name="屏幕采集",
+            uid="virtual",
+            urn="virtual:screen:0",
+            model="virtual.screen.v1",
+            manufacturer="Miloco",
+            connect_type=0,
+            pid=0,
+            token="",
+            online=True,
+            voice_ctrl=0,
+            order_time=0,
+            home_id=home_id,
+            room_name="虚拟设备",
+            lan_online=True,
+            channel_count=1,
+            camera_status=MIoTCameraStatus.CONNECTED,
+        )
+        self._camera_info_dict["virtual-screen-0"] = screen_cam
+
+        screen_dev = MIoTDeviceInfo(
+            did="virtual-screen-0",
+            name="屏幕采集",
+            uid="virtual",
+            urn="virtual:screen:0",
+            model="virtual.screen.v1",
+            manufacturer="Miloco",
+            connect_type=0,
+            pid=0,
+            token="",
+            online=True,
+            voice_ctrl=0,
+            order_time=0,
+            home_id=home_id,
+            room_name="虚拟设备",
+            lan_online=True,
+        )
+        self._device_info_dict["virtual-screen-0"] = screen_dev
+        logger.info("注入虚拟摄像头: virtual-screen-0 (屏幕采集)")
 
     async def refresh_camera_online_status(self) -> dict[str, MIoTCameraInfo] | None:
         """轻量刷新:重拉 SDK 相机列表、只更新 ``_camera_info_dict``(online / lan_online
