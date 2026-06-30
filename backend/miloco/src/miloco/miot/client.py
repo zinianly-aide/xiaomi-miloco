@@ -1162,8 +1162,21 @@ class MiotProxy:
 
     async def get_home_info_data(self) -> dict:
         """Build home info dict for CLI cache, including spec data fetched via spec_parser."""
+        # 快照所有设备/场景字典的 values()。
+        # 循环体里有 await _fetch_device_spec,期间另一个协程可能调用
+        # refresh_devices()/refresh_cameras()/refresh_camera_online_status()
+        # 把 _device_info_dict / _camera_info_dict 整体替换为新 dict。
+        # 虽然 dict 赋值是原子的,但 dict.values() 返回的是 view,
+        # 如果原 dict 被修改(增删 key,如 _inject_virtual_screen_camera 里
+        # self._device_info_dict["virtual-screen-0"] = ...)就会触发
+        # RuntimeError: dictionary changed size during iteration。
+        # 取 list(...) 快照后,即使原 dict 被替换/修改,遍历的是旧引用,安全。
+        device_snapshot = list(self._device_info_dict.values())
+        camera_snapshot = list(self._camera_info_dict.values())
+        scene_snapshot = list(self._scene_info_dict.values())
+
         devices = []
-        for device in self._device_info_dict.values():
+        for device in device_snapshot:
             category = None
             try:
                 parts = device.urn.split(":")
@@ -1190,11 +1203,11 @@ class MiotProxy:
             )
 
         areas = sorted(
-            {d.room_name for d in self._device_info_dict.values() if d.room_name}
+            {d.room_name for d in device_snapshot if d.room_name}
         )
         scenes = [
             {"scene_id": s.scene_id, "scene_name": s.scene_name}
-            for s in self._scene_info_dict.values()
+            for s in scene_snapshot
         ]
         # 米家家庭名：每台 MIoTDeviceInfo / MIoTCameraInfo 自带 home_name + home_id
         # 字段（米家云在 list_homes 时把家庭信息分发到了下属每个设备）。
@@ -1206,10 +1219,7 @@ class MiotProxy:
         # 版本胜出（cameras 通常是住户主关心入口，名字更准）。
         home_id_to_name: dict[str, str] = {}
         home_name: str | None = None
-        for d in (
-            *self._camera_info_dict.values(),
-            *self._device_info_dict.values(),
-        ):
+        for d in (*camera_snapshot, *device_snapshot):
             hid = getattr(d, "home_id", None)
             n = getattr(d, "home_name", None)
             if hid and n:

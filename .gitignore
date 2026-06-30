@@ -78,3 +78,9 @@ openspec
 _workspace
 _local/
 xaf/
+
+# AI assistant working dirs (session-local, not for version control)
+.codebuddy/
+.workbuddy/
+.pnpm-store/
+reasonix.toml

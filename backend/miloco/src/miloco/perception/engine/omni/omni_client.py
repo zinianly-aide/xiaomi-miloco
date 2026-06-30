@@ -235,6 +235,20 @@ def _build_messages(payload: dict) -> list[dict]:
             }
         )
 
+    # Generic still images. Screen analysis uses this path to avoid lossy MP4
+    # re-encoding while keeping the live MJPEG stream on the same capture buffer.
+    for image in payload.get("images", []):
+        data = image.get("base64") or image.get("data")
+        if not data:
+            continue
+        mime_type = image.get("mime_type") or image.get("media_type") or "image/jpeg"
+        content.append(
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:{mime_type};base64,{data}"},
+            }
+        )
+
     messages.append({"role": "user", "content": content})
     return messages
 

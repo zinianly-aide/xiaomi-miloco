@@ -979,6 +979,15 @@ class MiotService:
             "in_use": True,
             "connected": True,
         })
+        # 注入虚拟手机推流摄像头 (QuestPhoneStream WebRTC 接收端)
+        out.append({
+            "did": "virtual-phone-0",
+            "name": "手机屏幕推流",
+            "room_name": "虚拟设备",
+            "is_online": True,
+            "in_use": True,
+            "connected": True,
+        })
         return out
 
     async def toggle_camera(self, items: list[dict]) -> list[dict]:

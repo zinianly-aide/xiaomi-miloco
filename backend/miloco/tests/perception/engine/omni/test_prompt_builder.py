@@ -519,6 +519,23 @@ class TestBuildMessagesContentBlocks:
         assert "video_url" in types
         assert "input_audio" not in types
 
+    def test_images_route_emits_image_url_blocks(self):
+        from miloco.perception.engine.omni.omni_client import _build_messages
+
+        payload = {
+            "system_prompt": "s",
+            "user_content": "u",
+            "video_base64": None,
+            "crops": [],
+            "images": [{"mime_type": "image/jpeg", "base64": "abc"}],
+        }
+
+        messages = _build_messages(payload)
+        user_blocks = messages[1]["content"]
+        image_block = next(b for b in user_blocks if b["type"] == "image_url")
+
+        assert image_block["image_url"]["url"] == "data:image/jpeg;base64,abc"
+
 
 class TestFusedAudioRoute:
     """build_fused_payload 在 audio route 下的降级行为。"""

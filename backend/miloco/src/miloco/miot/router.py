@@ -652,6 +652,29 @@ iframe{{flex:1;border:none}}
             headers={"Cache-Control": "no-store"},
         )
 
+    # 虚拟手机推流摄像头: 嵌入 phone_stream 查看页
+    if camera_id == "virtual-phone-0":
+        token = get_settings().server.token or ""
+        if not token:
+            return HTMLResponse(
+                content="<h1>503: server.token 未配置,无法启动 phone watch 页</h1>",
+                status_code=503,
+            )
+        return HTMLResponse(
+            content=f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>手机屏幕推流</title>
+<style>
+*{{margin:0;padding:0;box-sizing:border-box}}
+body{{background:#000;display:flex;height:100vh}}
+iframe{{flex:1;border:none}}
+</style></head>
+<body><iframe src="/api/phone?token={quote(token, safe='')}"></iframe></body>
+</html>""",
+            headers={"Cache-Control": "no-store"},
+        )
+
     settings = get_settings()
     token = settings.server.token or ""
     if not token:
